@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	RPC     = "wss://turing-rpc.avail.so/rpc"                                          // RPC URL
-	SEED    = "tongue mail arrange member flag clip evolve frost summer bar only skin" // SEED PHRASE
-	APPID   = 27                                                                       // APP ID                                                                       // APPID
-	TIMEOUT = 100 * time.Second                                                        // TIMEOUT
+	RPC     = ""                // RPC URL
+	SEED    = ""                // SEED PHRASE
+	APPID   = 27                // APP ID                                                                       // APPID
+	TIMEOUT = 100 * time.Second // TIMEOUT
 )
 
 func Check() error {
