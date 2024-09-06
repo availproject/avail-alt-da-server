@@ -1,13 +1,13 @@
-//go:build avail
-// +build avail
-
 package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
+
 	"math/rand"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,14 +16,15 @@ import (
 	cli "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	RPC     = ""                // RPC URL
-	SEED    = ""                // SEED PHRASE
-	APPID   = 27                // APP ID                                                                       // APPID
-	TIMEOUT = 100 * time.Second // TIMEOUT
+var (
+	RPC     string
+	SEED    string
+	APPID   int
+	TIMEOUT time.Duration
 )
 
 func Check() error {
@@ -40,12 +41,32 @@ func Check() error {
 }
 
 func TestAvailDAClientService(t *testing.T) {
-	err := Check()
+	logger := testlog.Logger(t, log.LevelDebug)
+	if err := godotenv.Load(); err != nil {
+		logger.Crit("Error loading .env file: ", err)
+	}
+	RPC = os.Getenv("AVAIL_RPC")
+	SEED = os.Getenv("AVAIL_SEED")
+
+	appID, err := strconv.ParseInt(os.Getenv("AVAIL_APPID"), 10, 64)
+	if err != nil {
+		log.Crit("Error parsing APP_ID: ", err)
+	}
+	APPID = int(appID)
+
+	timeout, err := strconv.Atoi(os.Getenv("TIMEOUT"))
+	if err != nil {
+		log.Info("Error parsing TIMEOUT: ", err)
+		timeout = 100
+	}
+	TIMEOUT = time.Duration(timeout) * time.Second
+
+	err = Check()
 	if err != nil {
 		panic(err)
 	}
+
 	store := availService.NewAvailService(RPC, SEED, APPID, TIMEOUT)
-	logger := testlog.Logger(t, log.LevelDebug)
 
 	ctx := context.Background()
 

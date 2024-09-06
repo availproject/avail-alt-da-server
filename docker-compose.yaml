@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  avail-da-server:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - ADDR
+      - PORT
+      - AVAIL_RPC
+      - AVAIL_SEED
+      - AVAIL_APPID
+      - AVAIL_TIMEOUT
+    ports:
+      - "${PORT}:${PORT}"

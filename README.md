@@ -8,7 +8,7 @@ This introduces a sidecar DA Server for Optimism that interacts with Avail DA fo
 
 | Flag              | Default Value       |
 | ----------------- | ------------------- |
-| `--addr`          | `127.0.0.1`         |
+| `--addr`          | `0.0.0.1`           |
 | `--port`          | `3100`              |
 | `--avail.rpc`     |                     |
 | `--avail.seed`    |                     |
@@ -33,16 +33,7 @@ go run .  --addr=localhost --port=8000 --avail.rpc=<Avail RPC URL> --avail.seed=
 
 #### Run Tests
 
-- Fill the following values inside `daclient_avail_test.go`
-
-  ```
-    const (
-  	RPC     = ""                // RPC URL
-  	SEED    = ""                // SEED PHRASE
-  	APPID   = 0                 // APP ID
-  	TIMEOUT = 100 * time.Second // TIMEOUT
-  )
-  ```
+- Copy `.env.example` to `.env`. Fill the values inside.
 
 - Run the following command:
   ```

@@ -18,7 +18,6 @@ type AvailService struct {
 }
 
 func NewAvailService(apiURL string, seed string, appID int, timeout time.Duration) *AvailService {
-
 	availSpecs, err := types.NewAvailDASpecs(apiURL, appID, seed, timeout)
 
 	if err != nil {

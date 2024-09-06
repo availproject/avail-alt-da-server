@@ -4,6 +4,7 @@ go 1.21.6
 
 require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
+	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 	github.com/vedhavyas/go-subkey v1.0.3
