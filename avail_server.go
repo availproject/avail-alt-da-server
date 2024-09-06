@@ -35,6 +35,8 @@ type AvailDAServer struct {
 
 var ErrNotFound = errors.New("not found")
 
+const AvailByte = 0x0a
+
 func NewAvailDAServer(host string, port int, store AvailStore, log log.Logger, useGenericComm bool) *AvailDAServer {
 	endpoint := net.JoinHostPort(host, strconv.Itoa(port))
 	return &AvailDAServer{
@@ -105,7 +107,17 @@ func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input, err := d.store.Get(r.Context(), comm)
+	commExtracted, err := Decode(comm)
+
+	if err != nil {
+		d.log.Error("Failed to decode payload", "err", err, "key", key)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+
+	}
+
+	fmt.Println(hex.EncodeToString(commExtracted))
+	input, err := d.store.Get(r.Context(), commExtracted)
 	if err != nil && errors.Is(err, ErrNotFound) {
 		d.log.Error("Commitment not found", "key", key, "error", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -145,9 +157,10 @@ func (d *AvailDAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	d.log.Info("stored commitment", "key", hex.EncodeToString(comm), "input_len", len(input))
 
-	if _, err := w.Write(altda.GenericCommitment(comm).Encode()); err != nil {
+	d.log.Info("stored commitment", "key", hexutil.Encode(Encode(comm)), "input_len", len(input))
+
+	if _, err := w.Write(Encode(comm)); err != nil {
 		d.log.Error("Failed to write commitment request body", "err", err, "comm", comm)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -164,4 +177,15 @@ func (b *AvailDAServer) Stop() error {
 	defer cancel()
 	_ = b.httpServer.Shutdown(ctx)
 	return nil
+}
+
+func Encode(comm []byte) []byte {
+	return altda.GenericCommitment(append([]byte{byte(AvailByte)}, comm...)).Encode()
+}
+
+func Decode(comm []byte) ([]byte, error) {
+	if comm[0] != 0x01 && comm[1] != AvailByte {
+		return nil, fmt.Errorf("invalid encoding")
+	}
+	return comm[2:], nil
 }
