@@ -59,9 +59,11 @@ func (d *AvailDAServer) Start() error {
 	d.httpServer.Handler = mux
 
 	listener, err := net.Listen("tcp", d.endpoint)
+
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
+
 	d.listener = listener
 
 	d.endpoint = listener.Addr().String()

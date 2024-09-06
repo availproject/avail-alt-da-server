@@ -27,7 +27,7 @@ func StartDAServer(cliCtx *cli.Context) error {
 	l := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
 	oplog.SetGlobalLogHandler(l.Handler())
 
-	l.Info("Initializing Plasma DA server...")
+	l.Info("Initializing Alt DA DA server...")
 
 	availService := availService.NewAvailService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout)
 

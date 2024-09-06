@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
@@ -16,19 +15,14 @@ import (
 var Version = "v0.0.2"
 
 func main() {
-	fmt.Println("ADDR:", os.Getenv("ADDR"))
-	fmt.Println("PORT:", os.Getenv("PORT"))
-	fmt.Println("AVAIL_RPC:", os.Getenv("AVAIL_RPC"))
-	fmt.Println("AVAIL_SEED:", os.Getenv("AVAIL_SEED"))
-	fmt.Println("AVAIL_APPID:", os.Getenv("AVAIL_APPID"))
-	fmt.Println("AVAIL_TIMEOUT:", os.Getenv("AVAIL_TIMEOUT"))
+
 	oplog.SetupDefaults()
 
 	app := cli.NewApp()
 	app.Flags = cliapp.ProtectFlags(Flags)
 	app.Version = opservice.FormatVersion(Version, "", "", "")
-	app.Name = "avail-da-server"
-	app.Usage = "Plasma Avail DA Service"
+	app.Name = "avail-alt-da-da-server"
+	app.Usage = "Alt DA Avail Service"
 	app.Description = "Service for interacting with Avail DA"
 	app.Action = StartDAServer
 

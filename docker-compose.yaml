@@ -13,3 +13,5 @@ services:
       - AVAIL_TIMEOUT
     ports:
       - "${PORT}:${PORT}"
+      - "8080:8080"
+      - "433:433"
