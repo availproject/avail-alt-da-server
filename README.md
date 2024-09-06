@@ -39,3 +39,13 @@ go run .  --addr=localhost --port=8000 --avail.rpc=<Avail RPC URL> --avail.seed=
   ```
   make test
   ```
+
+### Run using docker
+
+- Copy `.env.example` to `.env`. Fill the values inside.
+
+- Run the following commands:
+  ```
+  docker-compose build
+  docker-compose up
+  ```
