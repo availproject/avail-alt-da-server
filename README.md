@@ -28,7 +28,7 @@ make da-server
 #### Run Avail Server
 
 ```
-go run .  --addr=localhost --port=8000 --avail.rpc=<Avail RPC URL> --avail.seed="<seed phrase>" --avail.appid=<APP ID> --avail.timeout=<(optional) Timeout>
+./bin/avail-da-server  --addr=localhost --port=8000 --avail.rpc=<Avail RPC URL> --avail.seed="<seed phrase>" --avail.appid=<APP ID> --avail.timeout=<(optional) Timeout>
 ```
 
 #### Run Tests
