@@ -8,8 +8,8 @@ This introduces a sidecar DA Server for Optimism that interacts with Avail DA fo
 
 | Flag              | Default Value       |
 | ----------------- | ------------------- |
-| `--addr`          | `0.0.0.1`           |
-| `--port`          | `3100`              |
+| `--addr`          | `localhost`         |
+| `--port`          | `8080`              |
 | `--avail.rpc`     |                     |
 | `--avail.seed`    |                     |
 | `--avail.appid`   |                     |
