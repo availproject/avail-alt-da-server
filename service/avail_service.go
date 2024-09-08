@@ -41,6 +41,7 @@ func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	}
 
 	input, err := scripts.GetBlockExtrinsicData(*s.Specs, avail_blk_ref)
+
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to get block extrinsic data: %w", err)
 	}

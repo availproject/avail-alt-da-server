@@ -27,6 +27,8 @@ ENV AVAIL_SEED=""
 ENV AVAIL_APPID=0
 ENV AVAIL_TIMEOUT=100
 
+EXPOSE ${PORT}
+
 # Print environment variables and run the application
 CMD echo "ADDR: ${ADDR}" && \
     echo "PORT: ${PORT}" && \

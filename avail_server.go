@@ -93,7 +93,7 @@ func (d *AvailDAServer) Start() error {
 }
 
 func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
-	d.log.Debug("GET", "url", r.URL)
+	d.log.Info("GET", "url", r.URL)
 
 	route := path.Dir(r.URL.Path)
 	if route != "/get" {
