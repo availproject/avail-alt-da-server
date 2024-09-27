@@ -20,6 +20,7 @@ func GetAccountNonce(accountNonce uint32) uint32 {
 }
 
 func GetSubstrateApi(ApiURL string) (*gsrpc.SubstrateAPI, error) {
+
 	api, err := gsrpc.NewSubstrateAPI(ApiURL)
 
 	if err != nil {

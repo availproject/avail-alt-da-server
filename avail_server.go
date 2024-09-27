@@ -38,6 +38,7 @@ var ErrNotFound = errors.New("not found")
 const AvailByte = 0x0a
 
 func NewAvailDAServer(host string, port int, store AvailStore, log log.Logger, useGenericComm bool) *AvailDAServer {
+
 	endpoint := net.JoinHostPort(host, strconv.Itoa(port))
 	return &AvailDAServer{
 		log:      log,

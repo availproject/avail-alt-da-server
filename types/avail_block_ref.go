@@ -49,8 +49,13 @@ type AvailDASpecs struct {
 }
 
 func NewAvailDASpecs(ApiURL string, AppID int, Seed string, Timeout time.Duration) (*AvailDASpecs, error) {
+
 	AppID = utils.EnsureValidAppID(AppID)
-	api, _ := utils.GetSubstrateApi(ApiURL)
+	api, err := utils.GetSubstrateApi(ApiURL)
+	if err != nil {
+		log.Error("⚠️ cannot connect to the rpc: error:%w", err)
+		return nil, err
+	}
 
 	meta, err := api.RPC.State.GetMetadataLatest()
 	if err != nil {
