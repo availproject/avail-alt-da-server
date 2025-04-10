@@ -33,7 +33,7 @@ func SubmitDataAndWatch(specs *types.AvailDASpecs, ctx context.Context, data []b
 	}
 
 	tx := sdk.Tx.DataAvailability.SubmitData(data)
-	res, err := tx.ExecuteAndWatchInclusion(specs.KeyringPair, SDK.NewTransactionOptions().WithAppId(uint32(specs.AppID)))
+	res, err := tx.ExecuteAndWatchFinalization(specs.KeyringPair, SDK.NewTransactionOptions().WithAppId(uint32(specs.AppID)))
 	if err != nil {
 		log.Error("unable to execute and watch inclusion", "error", err)
 		return types.AvailBlockRef{}, fmt.Errorf("unable to execute and watch inclusion: %w", err)
