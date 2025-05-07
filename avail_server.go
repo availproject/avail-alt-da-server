@@ -56,6 +56,7 @@ func (d *AvailDAServer) Start() error {
 
 	mux.HandleFunc("/get/", d.HandleGet)
 	mux.HandleFunc("/put/", d.HandlePut)
+	mux.HandleFunc("/put", d.HandlePut)
 
 	d.httpServer.Handler = mux
 
@@ -142,7 +143,7 @@ func (d *AvailDAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 	d.log.Info("PUT", "url", r.URL)
 
 	route := path.Dir(r.URL.Path)
-	if route != "/put" {
+	if route != "/put" && r.URL.Path != "/put" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
