@@ -70,7 +70,10 @@ func TestAvailDAClientService(t *testing.T) {
 		panic(err)
 	}
 
-	store := availService.NewAvailService(RPC, SEED, APPID, TIMEOUT, logger)
+	store, err := availService.NewAvailService(RPC, SEED, APPID, TIMEOUT, logger)
+	if err != nil {
+		panic(err)
+	}
 
 	ctx := context.Background()
 

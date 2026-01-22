@@ -8,34 +8,38 @@ import (
 
 	"avail-alt-da-server/scripts"
 	"avail-alt-da-server/types"
+	"avail-alt-da-server/utils"
 
+	SDK "github.com/availproject/avail-go-sdk/sdk"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/vedhavyas/go-subkey/v2"
 )
 
 type AvailService struct {
-	Seed    string              `json:"seed"`
-	ApiURL  string              `json:"api_url"`
-	AppID   int                 `json:"app_id"`
-	Timeout time.Duration       `json:"timeout"`
-	Specs   *types.AvailDASpecs `json:"availDASpecs"`
+	Account subkey.KeyPair
+	ApiURL  string        `json:"api_url"`
+	AppID   int           `json:"app_id"`
+	Timeout time.Duration `json:"timeout"`
 	log     log.Logger
 }
 
-func NewAvailService(apiURL string, seed string, appID int, timeout time.Duration, log log.Logger) *AvailService {
+func NewAvailService(apiURL string, seed string, appID int, timeout time.Duration, log log.Logger) (*AvailService, error) {
 
-	availSpecs, err := types.NewAvailDASpecs(apiURL, appID, seed, timeout)
+	AppID := utils.EnsureValidAppID(appID)
+
+	keyringPair, err := SDK.Account.NewKeyPair(seed)
 	if err != nil {
-		panic("failed avail initialisation")
+		log.Warn("⚠️ cannot create LeyPair: error:%w", err)
+		return nil, err
 	}
 
 	return &AvailService{
-		Seed:    seed,
+		Account: keyringPair,
 		ApiURL:  apiURL,
-		AppID:   appID,
+		AppID:   AppID,
 		Timeout: timeout,
-		Specs:   availSpecs,
 		log:     log,
-	}
+	}, nil
 }
 
 func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
@@ -46,7 +50,7 @@ func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 		return []byte{}, fmt.Errorf("failed to unmarshal the ethereum tx data to avail block reference, error: %w", err)
 	}
 
-	input, err := scripts.GetBlockExtrinsicData(*s.Specs, avail_blk_ref, s.log)
+	input, err := scripts.GetBlockExtrinsicData(s.ApiURL, avail_blk_ref, s.log)
 
 	if err != nil {
 		s.log.Error("failed to get block extrinsic data", "error", err)
@@ -62,7 +66,7 @@ func (s *AvailService) Put(ctx context.Context, value []byte) ([]byte, error) {
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
-	avail_Blk_Ref, err := scripts.SubmitDataAndWatch(s.Specs, ctx, value, s.log)
+	avail_Blk_Ref, err := scripts.SubmitDataAndWatch(s.ApiURL, s.Account, s.AppID, ctx, value, s.log)
 
 	if err != nil {
 		s.log.Error("cannot submit data", "error", err)

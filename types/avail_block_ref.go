@@ -3,13 +3,6 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
-	"avail-alt-da-server/utils"
-
-	SDK "github.com/availproject/avail-go-sdk/sdk"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/vedhavyas/go-subkey/v2"
 )
 
 type AvailBlockRef struct {
@@ -34,29 +27,4 @@ func (a *AvailBlockRef) UnmarshalFromBinary(avail_blk_Ref []byte) error {
 		return fmt.Errorf("unable to convert avail_blk_Ref bytes to AvailBlockRef Struct and getting error:%w", err)
 	}
 	return nil
-}
-
-type AvailDASpecs struct {
-	ApiURL      string
-	Timeout     time.Duration
-	AppID       int
-	KeyringPair subkey.KeyPair
-}
-
-func NewAvailDASpecs(ApiURL string, AppID int, Seed string, Timeout time.Duration) (*AvailDASpecs, error) {
-
-	AppID = utils.EnsureValidAppID(AppID)
-
-	keyringPair, err := SDK.Account.NewKeyPair(Seed)
-	if err != nil {
-		log.Warn("⚠️ cannot create LeyPair: error:%w", err)
-		return nil, err
-	}
-
-	return &AvailDASpecs{
-		ApiURL:      ApiURL,
-		Timeout:     Timeout,
-		AppID:       AppID,
-		KeyringPair: keyringPair,
-	}, nil
 }

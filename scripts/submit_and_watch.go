@@ -11,19 +11,20 @@ import (
 	daPallet "github.com/availproject/avail-go-sdk/metadata/pallets/data_availability"
 	SDK "github.com/availproject/avail-go-sdk/sdk"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/vedhavyas/go-subkey/v2"
 )
 
-func SubmitDataAndWatch(specs *types.AvailDASpecs, ctx context.Context, data []byte, log log.Logger) (types.AvailBlockRef, error) {
-	sdk, err := SDK.NewSDK(specs.ApiURL)
+func SubmitDataAndWatch(apiURL string, acc subkey.KeyPair, appID int, ctx context.Context, data []byte, log log.Logger) (types.AvailBlockRef, error) {
+	sdk, err := SDK.NewSDK(apiURL)
 	if err != nil {
 		panic(err)
 	}
 
-	accountId, err := metadata.NewAccountIdFromAddress(specs.KeyringPair.SS58Address(42))
+	accountId, err := metadata.NewAccountIdFromAddress(acc.SS58Address(42))
 
 	if err != nil {
 		log.Error("unable to create account id from address", "error", err)
-		return types.AvailBlockRef{}, fmt.Errorf("unable to create account id from address: %v, error: %w", specs.KeyringPair.SS58Address(42), err)
+		return types.AvailBlockRef{}, fmt.Errorf("unable to create account id from address: %v, error: %w", acc.SS58Address(42), err)
 	}
 
 	nonce, err := SDK.Account.Nonce(sdk.Client, accountId)
@@ -33,7 +34,7 @@ func SubmitDataAndWatch(specs *types.AvailDASpecs, ctx context.Context, data []b
 	}
 
 	tx := sdk.Tx.DataAvailability.SubmitData(data)
-	res, err := tx.ExecuteAndWatchFinalization(specs.KeyringPair, SDK.NewTransactionOptions().WithAppId(uint32(specs.AppID)))
+	res, err := tx.ExecuteAndWatchFinalization(acc, SDK.NewTransactionOptions().WithAppId(uint32(appID)))
 	if err != nil {
 		log.Error("unable to execute and watch inclusion", "error", err)
 		return types.AvailBlockRef{}, fmt.Errorf("unable to execute and watch inclusion: %w", err)
@@ -51,6 +52,6 @@ func SubmitDataAndWatch(specs *types.AvailDASpecs, ctx context.Context, data []b
 	events := res.Events.Unwrap()
 	event := SDK.EventFindFirst(events, daPallet.EventDataSubmitted{}).Unwrap()
 
-	return types.AvailBlockRef{BlockHash: res.BlockHash.ToHexWith0x(), Sender: specs.KeyringPair.SS58Address(42), Nonce: int64(nonce), Commitment: event.DataHash.ToHexWith0x()}, nil
+	return types.AvailBlockRef{BlockHash: res.BlockHash.ToHexWith0x(), Sender: acc.SS58Address(42), Nonce: int64(nonce), Commitment: event.DataHash.ToHexWith0x()}, nil
 
 }

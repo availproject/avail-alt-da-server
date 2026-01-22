@@ -11,13 +11,13 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-func GetBlockExtrinsicData(specs types.AvailDASpecs, avail_blk_ref types.AvailBlockRef, log log.Logger) ([]byte, error) {
+func GetBlockExtrinsicData(apiUrl string, avail_blk_ref types.AvailBlockRef, log log.Logger) ([]byte, error) {
 
 	Hash := avail_blk_ref.BlockHash
 	Address := avail_blk_ref.Sender
 	Nonce := avail_blk_ref.Nonce
 
-	avail_blk, err := fetchBlock(specs.ApiURL, Hash)
+	avail_blk, err := fetchBlock(apiUrl, Hash)
 	if err != nil {
 		log.Error("cannot fetch block", "error", err)
 		return []byte{}, fmt.Errorf("cannot fetch block: %w", err)

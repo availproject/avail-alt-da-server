@@ -27,9 +27,12 @@ func StartDAServer(cliCtx *cli.Context) error {
 	l := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
 	oplog.SetGlobalLogHandler(l.Handler())
 
-	l.Info("Initializing Alt DA DA server...")
+	l.Info("Initializing Alt DA server...")
 
-	availService := availService.NewAvailService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout, l)
+	availService, err := availService.NewAvailService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout, l)
+	if err != nil {
+		return fmt.Errorf("failed to create avail service: %w", err)
+	}
 
 	server := NewAvailDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), availService, l, true)
 
