@@ -18,6 +18,9 @@ const (
 	Seed               = "avail.seed"
 	AppID              = "avail.appid"
 	Timeout            = "avail.timeout"
+	TurboDAEnabled     = "avail.turboda"
+	TurboDAURL         = "avail.turboda.url"
+	TurboDAKey         = "avail.turboda.key"
 )
 
 const EnvVarPrefix = "OP_PLASMA_AVAIL_DA_SERVER"
@@ -60,18 +63,37 @@ var (
 		EnvVars: prefixEnvVars("AVAIL_TIMEOUT"),
 		Value:   100 * time.Second,
 	}
+	TurboDAEnabledFlag = &cli.BoolFlag{
+		Name:    TurboDAEnabled,
+		Usage:   "enable turbo da",
+		EnvVars: prefixEnvVars("AVAIL_TURBODA"),
+		Value:   false,
+	}
+	TurboDAURLFlag = &cli.StringFlag{
+		Name:    TurboDAURL,
+		Usage:   "turbo da url",
+		EnvVars: prefixEnvVars("AVAIL_TURBODA_URL"),
+	}
+	TurboDAKeyFlag = &cli.StringFlag{
+		Name:    TurboDAKey,
+		Usage:   "turbo da key",
+		EnvVars: prefixEnvVars("AVAIL_TURBODA_KEY"),
+	}
 )
 
 var requiredFlags = []cli.Flag{
 	ListenAddrFlag,
 	PortFlag,
-	AvailRPCFlag,
-	SeedFlag,
 	AppIDFlag,
 }
 
 var optionalFlags = []cli.Flag{
 	TimeoutFlag,
+	AvailRPCFlag,
+	SeedFlag,
+	TurboDAEnabledFlag,
+	TurboDAURLFlag,
+	TurboDAKeyFlag,
 }
 
 func init() {
@@ -83,30 +105,46 @@ func init() {
 var Flags []cli.Flag
 
 type CLIConfig struct {
-	RPC     string
-	Seed    string
-	AppId   int
-	Timeout time.Duration
+	RPC        string
+	Seed       string
+	AppId      int
+	Timeout    time.Duration
+	TurboDA    bool
+	TurboDAURL string
+	TurboDAKey string
 }
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	return CLIConfig{
-		RPC:     ctx.String(AvailRPCUrl),
-		Seed:    ctx.String(Seed),
-		AppId:   ctx.Int(AppID),
-		Timeout: ctx.Duration(Timeout),
+		RPC:        ctx.String(AvailRPCUrl),
+		Seed:       ctx.String(Seed),
+		AppId:      ctx.Int(AppID),
+		Timeout:    ctx.Duration(Timeout),
+		TurboDA:    ctx.Bool(TurboDAEnabled),
+		TurboDAURL: ctx.String(TurboDAURL),
+		TurboDAKey: ctx.String(TurboDAKey),
 	}
 }
 
 func (c CLIConfig) Check() error {
-	if c.RPC == "" {
-		return errors.New("no rpc url provided")
+	if !c.TurboDA {
+		if c.RPC == "" {
+			return errors.New("no rpc url provided")
+		}
+		if c.Seed == "" {
+			return errors.New("seedphrase not provided")
+		}
 	}
 	if c.AppId == 0 {
 		return errors.New("no app id provided")
 	}
-	if c.Seed == "" {
-		return errors.New("seedphrase not provided")
+	if c.TurboDA {
+		if c.TurboDAURL == "" {
+			return errors.New("turbo da url not provided")
+		}
+		if c.TurboDAKey == "" {
+			return errors.New("turbo da key not provided")
+		}
 	}
 	return nil
 }
