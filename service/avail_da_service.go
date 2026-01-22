@@ -15,15 +15,15 @@ import (
 	"github.com/vedhavyas/go-subkey/v2"
 )
 
-type AvailService struct {
+type AvailDAService struct {
 	Account subkey.KeyPair
-	ApiURL  string        `json:"api_url"`
+	RPCURL  string        `json:"api_url"`
 	AppID   int           `json:"app_id"`
 	Timeout time.Duration `json:"timeout"`
 	log     log.Logger
 }
 
-func NewAvailService(apiURL string, seed string, appID int, timeout time.Duration, log log.Logger) (*AvailService, error) {
+func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Duration, log log.Logger) (*AvailDAService, error) {
 
 	AppID := utils.EnsureValidAppID(appID)
 
@@ -33,16 +33,16 @@ func NewAvailService(apiURL string, seed string, appID int, timeout time.Duratio
 		return nil, err
 	}
 
-	return &AvailService{
+	return &AvailDAService{
 		Account: keyringPair,
-		ApiURL:  apiURL,
+		RPCURL:  rpcURL,
 		AppID:   AppID,
 		Timeout: timeout,
 		log:     log,
 	}, nil
 }
 
-func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
+func (s *AvailDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	avail_blk_ref := types.AvailBlockRef{}
 	err := avail_blk_ref.UnmarshalFromBinary(comm)
 	if err != nil {
@@ -50,7 +50,7 @@ func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 		return []byte{}, fmt.Errorf("failed to unmarshal the ethereum tx data to avail block reference, error: %w", err)
 	}
 
-	input, err := scripts.GetBlockExtrinsicData(s.ApiURL, avail_blk_ref, s.log)
+	input, err := scripts.GetBlockExtrinsicData(s.RPCURL, avail_blk_ref, s.log)
 
 	if err != nil {
 		s.log.Error("failed to get block extrinsic data", "error", err)
@@ -60,13 +60,13 @@ func (s *AvailService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	return input, nil
 }
 
-func (s *AvailService) Put(ctx context.Context, value []byte) ([]byte, error) {
+func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) {
 
 	if len(value) >= 512000 {
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
-	avail_Blk_Ref, err := scripts.SubmitDataAndWatch(s.ApiURL, s.Account, s.AppID, ctx, value, s.log)
+	avail_Blk_Ref, err := scripts.SubmitDataAndWatch(s.RPCURL, s.Account, s.AppID, ctx, value, s.log)
 
 	if err != nil {
 		s.log.Error("cannot submit data", "error", err)

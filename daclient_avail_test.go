@@ -70,7 +70,7 @@ func TestAvailDAClientService(t *testing.T) {
 		panic(err)
 	}
 
-	store, err := availService.NewAvailService(RPC, SEED, APPID, TIMEOUT, logger)
+	store, err := availService.NewAvailDAService(RPC, SEED, APPID, TIMEOUT, logger)
 	if err != nil {
 		panic(err)
 	}

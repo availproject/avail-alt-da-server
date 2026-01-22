@@ -1,11 +1,10 @@
 package main
 
 import (
+	avail "avail-alt-da-server/service"
 	"fmt"
 
 	"github.com/urfave/cli/v2"
-
-	availService "avail-alt-da-server/service"
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/opio"
@@ -29,9 +28,18 @@ func StartDAServer(cliCtx *cli.Context) error {
 
 	l.Info("Initializing Alt DA server...")
 
-	availService, err := availService.NewAvailService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout, l)
-	if err != nil {
-		return fmt.Errorf("failed to create avail service: %w", err)
+	var availService AvailStore
+	var err error
+	if cfg.TurboDA {
+		availService, err = avail.NewTurboDAService(cfg.TurboDAURL, cfg.TurboDAKey, cfg.Timeout, l)
+		if err != nil {
+			return fmt.Errorf("failed to create turbo da service: %w", err)
+		}
+	} else {
+		availService, err = avail.NewAvailDAService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout, l)
+		if err != nil {
+			return fmt.Errorf("failed to create avail da service: %w", err)
+		}
 	}
 
 	server := NewAvailDAServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), availService, l, true)
