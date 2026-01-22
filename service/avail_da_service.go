@@ -11,11 +11,17 @@ import (
 	"avail-alt-da-server/utils"
 
 	SDK "github.com/availproject/avail-go-sdk/sdk"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/vedhavyas/go-subkey/v2"
 )
 
+const (
+	AvailNetworkID = 42
+)
+
 type AvailDAService struct {
+	SDK     *SDK.SDK
 	Account subkey.KeyPair
 	RPCURL  string        `json:"api_url"`
 	AppID   int           `json:"app_id"`
@@ -25,15 +31,22 @@ type AvailDAService struct {
 
 func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Duration, log log.Logger) (*AvailDAService, error) {
 
+	sdk, err := SDK.NewSDK(rpcURL)
+	if err != nil {
+		log.Error("failed to create SDK", "error", err)
+		return nil, err
+	}
+
 	AppID := utils.EnsureValidAppID(appID)
 
 	keyringPair, err := SDK.Account.NewKeyPair(seed)
 	if err != nil {
-		log.Warn("⚠️ cannot create LeyPair: error:%w", err)
+		log.Warn("⚠️ cannot create KeyPair: error:%w", err)
 		return nil, err
 	}
 
 	return &AvailDAService{
+		SDK:     &sdk,
 		Account: keyringPair,
 		RPCURL:  rpcURL,
 		AppID:   AppID,
@@ -43,21 +56,17 @@ func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Durat
 }
 
 func (s *AvailDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
-	avail_blk_ref := types.AvailBlockRef{}
-	err := avail_blk_ref.UnmarshalFromBinary(comm)
-	if err != nil {
-		s.log.Error("failed to unmarshal the ethereum tx data to avail block reference", "error", err)
-		return []byte{}, fmt.Errorf("failed to unmarshal the ethereum tx data to avail block reference, error: %w", err)
+	s.log.Info("AvailDAInfo: 📥 Received Get request", "comm", comm)
+	blobPointer := &types.BlobPointer{}
+	if err := blobPointer.UnmarshalFromBinary(comm); err != nil {
+		return nil, fmt.Errorf("failed to decode BlobPointer: %w", err)
 	}
-
-	input, err := scripts.GetBlockExtrinsicData(s.RPCURL, avail_blk_ref, s.log)
-
+	data, err := scripts.GetDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
 	if err != nil {
-		s.log.Error("failed to get block extrinsic data", "error", err)
-		return []byte{}, fmt.Errorf("failed to get block extrinsic data: %w", err)
+		s.log.Error("failed to retrieve blob data", "error", err)
+		return []byte{}, fmt.Errorf("failed to retrieve blob data: %w", err)
 	}
-
-	return input, nil
+	return data, nil
 }
 
 func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) {
@@ -66,19 +75,66 @@ func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) 
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
-	avail_Blk_Ref, err := scripts.SubmitDataAndWatch(s.RPCURL, s.Account, s.AppID, ctx, value, s.log)
-
+	txDetails, err := submitData(ctx, s.SDK, s.Account, s.AppID, value, s.log)
 	if err != nil {
-		s.log.Error("cannot submit data", "error", err)
+		s.log.Error("AvailError: ⚠️ cannot submit data", "error", err)
 		return nil, fmt.Errorf("cannot submit data:%w", err)
 	}
 
-	comm, err := avail_Blk_Ref.MarshalToBinary()
-
+	blobPointer := types.NewBlobPointer(txDetails.BlockNumber, txDetails.TxIndex, txDetails.Commitment)
+	payload, err := blobPointer.MarshalToBinary()
 	if err != nil {
-		s.log.Error("cannot get the binary form of avail block reference", "error", err)
-		return nil, fmt.Errorf("cannot get the binary form of avail block reference:%w", err)
+		return nil, fmt.Errorf("encode blob pointer failed: %w", err)
 	}
 
-	return comm, nil
+	return payload, nil
+}
+
+func submitData(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, appID int, data []byte, log log.Logger) (types.TransactionDetails, error) {
+
+	resultCh := make(chan struct {
+		details types.TransactionDetails
+		err     error
+	}, 1)
+
+	// Run the blocking SDK call in a goroutine
+	go func() {
+		log.Info("AvailDAInfo: 📤 Submitting data to Avail chain")
+		tx := sdk.Tx.DataAvailability.SubmitData(data)
+		txDetails, err := tx.ExecuteAndWatchFinalization(
+			acc,
+			SDK.NewTransactionOptions().WithAppId(uint32(appID)),
+		)
+		if err == nil {
+			status := txDetails.IsSuccessful().Unwrap()
+			if !status {
+				err = fmt.Errorf("extrinsic failed on avail chain, status: %v", status)
+			}
+		}
+
+		resultCh <- struct {
+			details types.TransactionDetails
+			err     error
+		}{types.TransactionDetails{BlockNumber: txDetails.BlockNumber, BlockHash: txDetails.BlockHash, TxIndex: txDetails.TxIndex, Commitment: crypto.Keccak256Hash(data)}, err}
+	}()
+
+	// Now wait for either SDK result or context cancellation
+	select {
+	case <-ctx.Done():
+		return types.TransactionDetails{}, ctx.Err()
+	case res := <-resultCh:
+		if res.err != nil {
+			return types.TransactionDetails{}, fmt.Errorf("⚠️ extrinsic got rejected: %w", res.err)
+		}
+
+		log.Debug("AvailDADebug: ✅ Data is included in Avail chain address=%s appID=%d block_number=%d block_hash=%s tx_index=%d",
+			acc.SS58Address(AvailNetworkID),
+			appID,
+			res.details.BlockNumber,
+			res.details.BlockHash,
+			res.details.TxIndex,
+		)
+		log.Info("AvailDAInfo: 📤 Data submitted to Avail chain")
+		return types.TransactionDetails{BlockNumber: res.details.BlockNumber, BlockHash: res.details.BlockHash, TxIndex: res.details.TxIndex}, nil
+	}
 }
