@@ -32,7 +32,7 @@ func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Durat
 
 	sdk, err := SDK.NewSDK(rpcURL)
 	if err != nil {
-		log.Error("failed to create SDK", "error", err)
+		log.Error("AvailDAError: ❌ failed to create SDK", "error", err)
 		return nil, err
 	}
 
@@ -40,7 +40,7 @@ func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Durat
 
 	keyringPair, err := SDK.Account.NewKeyPair(seed)
 	if err != nil {
-		log.Warn("⚠️ cannot create KeyPair: error:%w", err)
+		log.Error("AvailDAError: ⚠️ cannot create KeyPair: error:%w", err)
 		return nil, err
 	}
 
@@ -58,31 +58,33 @@ func (s *AvailDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	s.log.Info("AvailDAInfo: 📥 Received Get request", "comm", comm)
 	blobPointer := &types.BlobPointer{}
 	if err := blobPointer.UnmarshalFromBinary(comm); err != nil {
+		s.log.Error("AvailDAError: ❌ failed to decode BlobPointer", "error", err)
 		return nil, fmt.Errorf("failed to decode BlobPointer: %w", err)
 	}
 	data, err := scripts.GetDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
 	if err != nil {
-		s.log.Error("failed to retrieve blob data", "error", err)
+		s.log.Error("AvailDAError: ❌ failed to retrieve blob data", "error", err)
 		return []byte{}, fmt.Errorf("failed to retrieve blob data: %w", err)
 	}
 	return data, nil
 }
 
 func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) {
-
+	s.log.Info("AvailDAInfo: 📥 Received Put request")
 	if len(value) >= 512000 {
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
 	txDetails, err := submitDataToAvailDA(ctx, s.SDK, s.Account, s.AppID, value, s.log)
 	if err != nil {
-		s.log.Error("AvailError: ⚠️ cannot submit data", "error", err)
+		s.log.Error("AvailDAError: ⚠️ cannot submit data", "error", err)
 		return nil, fmt.Errorf("cannot submit data:%w", err)
 	}
 
 	blobPointer := types.NewBlobPointer(txDetails.BlockNumber, txDetails.TxIndex, txDetails.Commitment)
 	payload, err := blobPointer.MarshalToBinary()
 	if err != nil {
+		s.log.Error("AvailDAError: ❌ encode blob pointer failed", "error", err)
 		return nil, fmt.Errorf("encode blob pointer failed: %w", err)
 	}
 
@@ -98,7 +100,7 @@ func submitDataToAvailDA(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, 
 
 	// Run the blocking SDK call in a goroutine
 	go func() {
-		log.Info("AvailDAInfo: 📤 Submitting data to Avail chain")
+		log.Debug("AvailDAInfo: 📤 Submitting data to Avail chain")
 		tx := sdk.Tx.DataAvailability.SubmitData(data)
 		txDetails, err := tx.ExecuteAndWatchFinalization(
 			acc,
@@ -126,14 +128,15 @@ func submitDataToAvailDA(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, 
 			return types.TransactionDetails{}, fmt.Errorf("⚠️ extrinsic got rejected: %w", res.err)
 		}
 
-		log.Debug("AvailDADebug: ✅ Data is included in Avail chain address=%s appID=%d block_number=%d block_hash=%s tx_index=%d",
-			acc.SS58Address(AvailNetworkID),
-			appID,
-			res.details.BlockNumber,
-			res.details.BlockHash,
-			res.details.TxIndex,
+		log.Debug("AvailDADebug: ✅ Data is included in Avail chain",
+			"data_size", len(data),
+			"address", acc.SS58Address(AvailNetworkID),
+			"appID", appID,
+			"block_number", res.details.BlockNumber,
+			"block_hash", res.details.BlockHash,
+			"tx_index", res.details.TxIndex,
 		)
-		log.Info("AvailDAInfo: 📤 Data submitted to Avail chain")
+		log.Debug("AvailDAInfo: 📤 Data submitted to Avail chain")
 		return types.TransactionDetails{BlockNumber: res.details.BlockNumber, BlockHash: res.details.BlockHash, TxIndex: res.details.TxIndex}, nil
 	}
 }

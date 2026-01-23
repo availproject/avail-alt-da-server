@@ -16,6 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+const (
+	MAX_ATTEMPTS = 10
+)
+
 type TurboDAService struct {
 	SDK     *SDK.SDK
 	APIURL  string
@@ -27,6 +31,7 @@ type TurboDAService struct {
 func NewTurboDAService(apiURL string, rpcURL string, key string, timeout time.Duration, log log.Logger) (*TurboDAService, error) {
 	sdk, err := SDK.NewSDK(rpcURL)
 	if err != nil {
+		log.Error("AvailDAError: ❌ failed to create avail sdk", "error", err)
 		return nil, fmt.Errorf("failed to create avail sdk: %w", err)
 	}
 	return &TurboDAService{
@@ -42,11 +47,12 @@ func (s *TurboDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 	s.log.Info("AvailDAInfo: 📥 Received Get request", "comm", comm)
 	blobPointer := &types.BlobPointer{}
 	if err := blobPointer.UnmarshalFromBinary(comm); err != nil {
+		s.log.Error("AvailDAError: ❌ failed to decode BlobPointer", "error", err)
 		return nil, fmt.Errorf("failed to decode BlobPointer: %w", err)
 	}
 	data, err := scripts.GetDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
 	if err != nil {
-		s.log.Error("failed to retrieve blob data", "error", err)
+		s.log.Error("AvailDAError: ❌ failed to retrieve blob data", "error", err)
 		return []byte{}, fmt.Errorf("failed to retrieve blob data: %w", err)
 	}
 	return data, nil
@@ -56,15 +62,16 @@ func (s *TurboDAService) Put(ctx context.Context, value []byte) ([]byte, error) 
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
-	txDetails, err := submitDataToTurboDA(ctx, s.log, s.APIURL, s.key, value, 10)
+	txDetails, err := submitDataToTurboDA(ctx, s.log, s.APIURL, s.key, value, MAX_ATTEMPTS)
 	if err != nil {
-		s.log.Error("AvailError: ⚠️ cannot submit data", "error", err)
+		s.log.Error("AvailDAError: ⚠️ cannot submit data", "error", err)
 		return nil, fmt.Errorf("cannot submit data:%w", err)
 	}
 
 	blobPointer := types.NewBlobPointer(txDetails.BlockNumber, txDetails.TxIndex, txDetails.Commitment)
 	payload, err := blobPointer.MarshalToBinary()
 	if err != nil {
+		s.log.Error("AvailDAError: ❌ failed to encode blob pointer", "error", err)
 		return nil, fmt.Errorf("encode blob pointer failed: %w", err)
 	}
 
@@ -141,17 +148,18 @@ func submitDataToTurboDA(ctx context.Context, logger log.Logger, url string, api
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			logger.Warn("AvailDAWarn: ⚠️ Failed to fetch submission info (attempt %d/%d): %v", attempt, maxAttempts, err)
+			logger.Warn("AvailDAWarn: ⚠️ Failed to fetch submission status", "error", err)
+			logger.Debug("AvailDAinfo", "attempt", attempt, "maxAttempts", maxAttempts, "error", err)
 		} else {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 
 			if err := json.Unmarshal(body, &statusResp); err != nil {
-				logger.Warn("AvailDAWarn: ⚠️ Invalid JSON from Turbo DA: %w", err)
+				logger.Warn("AvailDAWarn: ⚠️ Invalid JSON from Turbo DA", "error", err)
 			} else {
-				logger.Info("AvailDAInfo: ⏳ Attempt %d/%d | State: %s", attempt, maxAttempts, statusResp.State)
+				logger.Debug("AvailDAInfo: ⏳ Attempt info", "attempt", attempt, "maxAttempts", maxAttempts, "status", statusResp.State)
 				if statusResp.State == "Finalized" {
-					log.Info("AvailDAInfo: ✅ Turbo DA finalized submission %s", postResp.SubmissionID)
+					logger.Debug("AvailDAInfo: ✅ Turbo DA finalized submission", "submissionID", postResp.SubmissionID)
 					blockHash, err := primitives.NewBlockHashFromHexString(statusResp.Data.BlockHash)
 					if err != nil {
 						return types.TransactionDetails{}, fmt.Errorf("invalid block hash from Turbo DA: %w", err)
@@ -163,7 +171,7 @@ func submitDataToTurboDA(ctx context.Context, logger log.Logger, url string, api
 
 		// exponential backoff with cap
 		sleep := time.Duration(minInt(30, 2<<attempt)) * time.Second
-		logger.Info("AvailDAInfo: 🕒 Waiting %s before next check...", sleep)
+		logger.Debug("AvailDAInfo: 🕒 Waiting before the next check...", "sleep", sleep)
 		time.Sleep(sleep)
 	}
 

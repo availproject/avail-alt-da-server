@@ -32,10 +32,14 @@ func GetDatafromAvail(sdk *SDK.SDK, blockNumber uint32, index uint32) ([]byte, e
 		log.Warn("AvailDAWarn:‼️ Unable to extract the signer address for the blob")
 	}
 
-	log.Debug("AvailDADebug: ✅ Data retrieved from Avail chain signer: %s, appID: %d, extrinsicHash: %s",
-		signerAddress.ToHuman(),
-		blob.AppId,
-		blob.TxHash,
+	log.Debug("AvailDADebug: ✅ Data retrieved from Avail chain",
+		"data_size", len(blob.Data),
+		"block_number", blockNumber,
+		"block_hash", blockHash,
+		"tx_index", index,
+		"signer", signerAddress.ToHuman(),
+		"appID", blob.AppId,
+		"extrinsicHash", blob.TxHash,
 	)
 
 	return blob.Data, nil
