@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"testing"
-	"time"
 
 	availService "avail-alt-da-server/service"
 
@@ -21,10 +20,9 @@ import (
 )
 
 var (
-	RPC     string
-	SEED    string
-	APPID   int
-	TIMEOUT time.Duration
+	RPC   string
+	SEED  string
+	APPID int
 )
 
 func Check() error {
@@ -58,19 +56,12 @@ func TestAvailDAClientService(t *testing.T) {
 	}
 	APPID = int(appID)
 
-	timeout, err := strconv.Atoi(os.Getenv("TIMEOUT"))
-	if err != nil {
-		log.Info("Error parsing TIMEOUT: ", err)
-		timeout = 100
-	}
-	TIMEOUT = time.Duration(timeout) * time.Second
-
 	err = Check()
 	if err != nil {
 		panic(err)
 	}
 
-	store, err := availService.NewAvailDAService(RPC, SEED, APPID, TIMEOUT, logger)
+	store, err := availService.NewAvailDAService(RPC, SEED, APPID, logger)
 	if err != nil {
 		panic(err)
 	}
