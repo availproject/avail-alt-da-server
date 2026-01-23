@@ -8,7 +8,6 @@ import (
 
 	"avail-alt-da-server/scripts"
 	"avail-alt-da-server/types"
-	"avail-alt-da-server/utils"
 
 	SDK "github.com/availproject/avail-go-sdk/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -37,7 +36,7 @@ func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Durat
 		return nil, err
 	}
 
-	AppID := utils.EnsureValidAppID(appID)
+	AppID := validateAppID(appID)
 
 	keyringPair, err := SDK.Account.NewKeyPair(seed)
 	if err != nil {
@@ -75,7 +74,7 @@ func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) 
 		return nil, fmt.Errorf("the length of input cannot be greater than 512kb")
 	}
 
-	txDetails, err := submitData(ctx, s.SDK, s.Account, s.AppID, value, s.log)
+	txDetails, err := submitDataToAvailDA(ctx, s.SDK, s.Account, s.AppID, value, s.log)
 	if err != nil {
 		s.log.Error("AvailError: ⚠️ cannot submit data", "error", err)
 		return nil, fmt.Errorf("cannot submit data:%w", err)
@@ -90,7 +89,7 @@ func (s *AvailDAService) Put(ctx context.Context, value []byte) ([]byte, error) 
 	return payload, nil
 }
 
-func submitData(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, appID int, data []byte, log log.Logger) (types.TransactionDetails, error) {
+func submitDataToAvailDA(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, appID int, data []byte, log log.Logger) (types.TransactionDetails, error) {
 
 	resultCh := make(chan struct {
 		details types.TransactionDetails
@@ -137,4 +136,11 @@ func submitData(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, appID int
 		log.Info("AvailDAInfo: 📤 Data submitted to Avail chain")
 		return types.TransactionDetails{BlockNumber: res.details.BlockNumber, BlockHash: res.details.BlockHash, TxIndex: res.details.TxIndex}, nil
 	}
+}
+
+func validateAppID(appID int) int {
+	if appID > 0 {
+		return appID
+	}
+	return 0
 }

@@ -84,13 +84,13 @@ var (
 var requiredFlags = []cli.Flag{
 	ListenAddrFlag,
 	PortFlag,
-	AppIDFlag,
+	AvailRPCFlag,
 }
 
 var optionalFlags = []cli.Flag{
 	TimeoutFlag,
-	AvailRPCFlag,
 	SeedFlag,
+	AppIDFlag,
 	TurboDAEnabledFlag,
 	TurboDAURLFlag,
 	TurboDAKeyFlag,
@@ -127,23 +127,19 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 }
 
 func (c CLIConfig) Check() error {
-	if !c.TurboDA {
-		if c.RPC == "" {
-			return errors.New("no rpc url provided")
-		}
-		if c.Seed == "" {
-			return errors.New("seedphrase not provided")
-		}
-	}
-	if c.AppId == 0 {
-		return errors.New("no app id provided")
-	}
 	if c.TurboDA {
 		if c.TurboDAURL == "" {
 			return errors.New("turbo da url not provided")
 		}
 		if c.TurboDAKey == "" {
 			return errors.New("turbo da key not provided")
+		}
+	} else {
+		if c.Seed == "" {
+			return errors.New("seedphrase not provided")
+		}
+		if c.AppId == 0 {
+			return errors.New("no app id provided")
 		}
 	}
 	return nil
