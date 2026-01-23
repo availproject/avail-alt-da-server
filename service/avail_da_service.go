@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"time"
-
 	"avail-alt-da-server/scripts"
 	"avail-alt-da-server/types"
 
@@ -22,13 +20,12 @@ const (
 type AvailDAService struct {
 	SDK     *SDK.SDK
 	Account subkey.KeyPair
-	RPCURL  string        `json:"api_url"`
-	AppID   int           `json:"app_id"`
-	Timeout time.Duration `json:"timeout"`
+	RPCURL  string `json:"api_url"`
+	AppID   int    `json:"app_id"`
 	log     log.Logger
 }
 
-func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Duration, log log.Logger) (*AvailDAService, error) {
+func NewAvailDAService(rpcURL string, seed string, appID int, log log.Logger) (*AvailDAService, error) {
 
 	sdk, err := SDK.NewSDK(rpcURL)
 	if err != nil {
@@ -49,7 +46,6 @@ func NewAvailDAService(rpcURL string, seed string, appID int, timeout time.Durat
 		Account: keyringPair,
 		RPCURL:  rpcURL,
 		AppID:   AppID,
-		Timeout: timeout,
 		log:     log,
 	}, nil
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -17,10 +16,9 @@ const (
 	AvailRPCUrl        = "avail.rpc"
 	Seed               = "avail.seed"
 	AppID              = "avail.appid"
-	Timeout            = "avail.timeout"
-	TurboDAEnabled     = "avail.turboda"
-	TurboDAURL         = "avail.turboda.url"
-	TurboDAKey         = "avail.turboda.key"
+	TurboDAEnabled     = "turboda"
+	TurboDAURL         = "turboda.url"
+	TurboDAKey         = "turboda.key"
 )
 
 const EnvVarPrefix = "OP_PLASMA_AVAIL_DA_SERVER"
@@ -57,27 +55,21 @@ var (
 		Usage:   "avail app id for the rollup",
 		EnvVars: prefixEnvVars("AVAIL_APPID"),
 	}
-	TimeoutFlag = &cli.DurationFlag{
-		Name:    Timeout,
-		Usage:   "timeout parameter for request to avail",
-		EnvVars: prefixEnvVars("AVAIL_TIMEOUT"),
-		Value:   100 * time.Second,
-	}
 	TurboDAEnabledFlag = &cli.BoolFlag{
 		Name:    TurboDAEnabled,
 		Usage:   "enable turbo da",
-		EnvVars: prefixEnvVars("AVAIL_TURBODA"),
+		EnvVars: prefixEnvVars("TURBODA"),
 		Value:   false,
 	}
 	TurboDAURLFlag = &cli.StringFlag{
 		Name:    TurboDAURL,
 		Usage:   "turbo da url",
-		EnvVars: prefixEnvVars("AVAIL_TURBODA_URL"),
+		EnvVars: prefixEnvVars("TURBODA_URL"),
 	}
 	TurboDAKeyFlag = &cli.StringFlag{
 		Name:    TurboDAKey,
 		Usage:   "turbo da key",
-		EnvVars: prefixEnvVars("AVAIL_TURBODA_KEY"),
+		EnvVars: prefixEnvVars("TURBODA_KEY"),
 	}
 )
 
@@ -88,7 +80,6 @@ var requiredFlags = []cli.Flag{
 }
 
 var optionalFlags = []cli.Flag{
-	TimeoutFlag,
 	SeedFlag,
 	AppIDFlag,
 	TurboDAEnabledFlag,
@@ -108,7 +99,6 @@ type CLIConfig struct {
 	RPC        string
 	Seed       string
 	AppId      int
-	Timeout    time.Duration
 	TurboDA    bool
 	TurboDAURL string
 	TurboDAKey string
@@ -119,7 +109,6 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 		RPC:        ctx.String(AvailRPCUrl),
 		Seed:       ctx.String(Seed),
 		AppId:      ctx.Int(AppID),
-		Timeout:    ctx.Duration(Timeout),
 		TurboDA:    ctx.Bool(TurboDAEnabled),
 		TurboDAURL: ctx.String(TurboDAURL),
 		TurboDAKey: ctx.String(TurboDAKey),

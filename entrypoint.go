@@ -31,12 +31,12 @@ func StartDAServer(cliCtx *cli.Context) error {
 	var availService AvailStore
 	var err error
 	if cfg.TurboDA {
-		availService, err = avail.NewTurboDAService(cfg.TurboDAURL, cfg.RPC, cfg.TurboDAKey, cfg.Timeout, l)
+		availService, err = avail.NewTurboDAService(cfg.TurboDAURL, cfg.RPC, cfg.TurboDAKey, l)
 		if err != nil {
 			return fmt.Errorf("failed to create turbo da service: %w", err)
 		}
 	} else {
-		availService, err = avail.NewAvailDAService(cfg.RPC, cfg.Seed, cfg.AppId, cfg.Timeout, l)
+		availService, err = avail.NewAvailDAService(cfg.RPC, cfg.Seed, cfg.AppId, l)
 		if err != nil {
 			return fmt.Errorf("failed to create avail da service: %w", err)
 		}

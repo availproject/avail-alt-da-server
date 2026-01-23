@@ -21,25 +21,23 @@ const (
 )
 
 type TurboDAService struct {
-	SDK     *SDK.SDK
-	APIURL  string
-	key     string
-	Timeout time.Duration
-	log     log.Logger
+	SDK    *SDK.SDK
+	APIURL string
+	key    string
+	log    log.Logger
 }
 
-func NewTurboDAService(apiURL string, rpcURL string, key string, timeout time.Duration, log log.Logger) (*TurboDAService, error) {
+func NewTurboDAService(apiURL string, rpcURL string, key string, log log.Logger) (*TurboDAService, error) {
 	sdk, err := SDK.NewSDK(rpcURL)
 	if err != nil {
 		log.Error("AvailDAError: ❌ failed to create avail sdk", "error", err)
 		return nil, fmt.Errorf("failed to create avail sdk: %w", err)
 	}
 	return &TurboDAService{
-		SDK:     &sdk,
-		APIURL:  apiURL,
-		key:     key,
-		Timeout: timeout,
-		log:     log,
+		SDK:    &sdk,
+		APIURL: apiURL,
+		key:    key,
+		log:    log,
 	}, nil
 }
 
