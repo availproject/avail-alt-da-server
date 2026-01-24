@@ -1,12 +1,12 @@
-package avail
+package service
 
 import (
 	"context"
 	"fmt"
 
-	"avail-alt-da-server/scripts"
-	"avail-alt-da-server/types"
+	"avail-alt-da-server/avail/types"
 
+	"github.com/availproject/avail-go-sdk/primitives"
 	SDK "github.com/availproject/avail-go-sdk/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -57,7 +57,7 @@ func (s *AvailDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 		s.log.Error("AvailDAError: ❌ failed to decode BlobPointer", "error", err)
 		return nil, fmt.Errorf("failed to decode BlobPointer: %w", err)
 	}
-	data, err := scripts.GetDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
+	data, err := getDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
 	if err != nil {
 		s.log.Error("AvailDAError: ❌ failed to retrieve blob data", "error", err)
 		return []byte{}, fmt.Errorf("failed to retrieve blob data: %w", err)
@@ -135,6 +135,43 @@ func submitDataToAvailDA(ctx context.Context, sdk *SDK.SDK, acc subkey.KeyPair, 
 		log.Debug("AvailDAInfo: 📤 Data submitted to Avail chain")
 		return types.TransactionDetails{BlockNumber: res.details.BlockNumber, BlockHash: res.details.BlockHash, TxIndex: res.details.TxIndex}, nil
 	}
+}
+
+func getDatafromAvail(sdk *SDK.SDK, blockNumber uint32, index uint32) ([]byte, error) {
+	blockHash, err := sdk.Client.BlockHash(blockNumber)
+	if err != nil {
+		return nil, fmt.Errorf("❎ Cannot get block hash: %w", err)
+	}
+
+	block, err := SDK.NewBlock(sdk.Client, blockHash)
+	if err != nil {
+		return nil, fmt.Errorf("❎ Cannot get block: %w", err)
+	}
+
+	var blob SDK.DataSubmission
+
+	blobs := block.DataSubmissions(SDK.Filter{}.WTxIndex(index))
+	if len(blobs) == 0 {
+		return nil, fmt.Errorf("❎ No blobs found for transaction index %d in block %d", index, blockNumber)
+	}
+	blob = blobs[0]
+
+	signerAddress, err := primitives.NewAccountIdFromMultiAddress(blob.TxSigner)
+	if err != nil {
+		log.Warn("AvailDAWarn:‼️ Unable to extract the signer address for the blob")
+	}
+
+	log.Debug("AvailDADebug: ✅ Data retrieved from Avail chain",
+		"data_size", len(blob.Data),
+		"block_number", blockNumber,
+		"block_hash", blockHash,
+		"tx_index", index,
+		"signer", signerAddress.ToHuman(),
+		"appID", blob.AppId,
+		"extrinsicHash", blob.TxHash,
+	)
+
+	return blob.Data, nil
 }
 
 func validateAppID(appID int) int {

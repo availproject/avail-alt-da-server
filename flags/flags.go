@@ -1,4 +1,4 @@
-package main
+package flags
 
 import (
 	"errors"
@@ -96,6 +96,8 @@ func init() {
 var Flags []cli.Flag
 
 type CLIConfig struct {
+	Addr       string
+	Port       int
 	RPC        string
 	Seed       string
 	AppId      int
@@ -106,6 +108,8 @@ type CLIConfig struct {
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	return CLIConfig{
+		Addr:       ctx.String(ListenAddrFlagName),
+		Port:       ctx.Int(PortFlagName),
 		RPC:        ctx.String(AvailRPCUrl),
 		Seed:       ctx.String(Seed),
 		AppId:      ctx.Int(AppID),

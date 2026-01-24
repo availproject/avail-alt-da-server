@@ -1,8 +1,7 @@
-package avail
+package service
 
 import (
-	"avail-alt-da-server/scripts"
-	"avail-alt-da-server/types"
+	"avail-alt-da-server/avail/types"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -48,7 +47,7 @@ func (s *TurboDAService) Get(ctx context.Context, comm []byte) ([]byte, error) {
 		s.log.Error("AvailDAError: ❌ failed to decode BlobPointer", "error", err)
 		return nil, fmt.Errorf("failed to decode BlobPointer: %w", err)
 	}
-	data, err := scripts.GetDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
+	data, err := getDatafromAvail(s.SDK, blobPointer.BlockHeight, blobPointer.ExtrinsicIndex)
 	if err != nil {
 		s.log.Error("AvailDAError: ❌ failed to retrieve blob data", "error", err)
 		return []byte{}, fmt.Errorf("failed to retrieve blob data: %w", err)

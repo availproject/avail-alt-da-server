@@ -10,7 +10,9 @@ import (
 	"strconv"
 	"testing"
 
-	availService "avail-alt-da-server/service"
+	"avail-alt-da-server/avail"
+	service "avail-alt-da-server/avail/service"
+	"avail-alt-da-server/server"
 
 	cli "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
@@ -61,14 +63,14 @@ func TestAvailDAClientService(t *testing.T) {
 		panic(err)
 	}
 
-	store, err := availService.NewAvailDAService(RPC, SEED, APPID, logger)
+	store, err := service.NewAvailDAService(RPC, SEED, APPID, logger)
 	if err != nil {
 		panic(err)
 	}
 
 	ctx := context.Background()
 
-	server := NewAvailDAServer("127.0.0.1", 0, store, logger, true)
+	server := server.NewDAServer("127.0.0.1", 0, avail.DAProvider{DAservice: store, DAByte: avail.AvailByte}, logger, true)
 
 	require.NoError(t, server.Start())
 
