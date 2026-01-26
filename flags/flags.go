@@ -1,9 +1,8 @@
-package main
+package flags
 
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -17,7 +16,9 @@ const (
 	AvailRPCUrl        = "avail.rpc"
 	Seed               = "avail.seed"
 	AppID              = "avail.appid"
-	Timeout            = "avail.timeout"
+	TurboDAEnabled     = "turboda"
+	TurboDAURL         = "turboda.url"
+	TurboDAKey         = "turboda.key"
 )
 
 const EnvVarPrefix = "OP_PLASMA_AVAIL_DA_SERVER"
@@ -54,11 +55,21 @@ var (
 		Usage:   "avail app id for the rollup",
 		EnvVars: prefixEnvVars("AVAIL_APPID"),
 	}
-	TimeoutFlag = &cli.DurationFlag{
-		Name:    Timeout,
-		Usage:   "timeout parameter for request to avail",
-		EnvVars: prefixEnvVars("AVAIL_TIMEOUT"),
-		Value:   100 * time.Second,
+	TurboDAEnabledFlag = &cli.BoolFlag{
+		Name:    TurboDAEnabled,
+		Usage:   "enable turbo da",
+		EnvVars: prefixEnvVars("TURBODA"),
+		Value:   false,
+	}
+	TurboDAURLFlag = &cli.StringFlag{
+		Name:    TurboDAURL,
+		Usage:   "turbo da url",
+		EnvVars: prefixEnvVars("TURBODA_URL"),
+	}
+	TurboDAKeyFlag = &cli.StringFlag{
+		Name:    TurboDAKey,
+		Usage:   "turbo da key",
+		EnvVars: prefixEnvVars("TURBODA_KEY"),
 	}
 )
 
@@ -66,12 +77,14 @@ var requiredFlags = []cli.Flag{
 	ListenAddrFlag,
 	PortFlag,
 	AvailRPCFlag,
-	SeedFlag,
-	AppIDFlag,
 }
 
 var optionalFlags = []cli.Flag{
-	TimeoutFlag,
+	SeedFlag,
+	AppIDFlag,
+	TurboDAEnabledFlag,
+	TurboDAURLFlag,
+	TurboDAKeyFlag,
 }
 
 func init() {
@@ -83,30 +96,44 @@ func init() {
 var Flags []cli.Flag
 
 type CLIConfig struct {
-	RPC     string
-	Seed    string
-	AppId   int
-	Timeout time.Duration
+	Addr       string
+	Port       int
+	RPC        string
+	Seed       string
+	AppId      int
+	TurboDA    bool
+	TurboDAURL string
+	TurboDAKey string
 }
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	return CLIConfig{
-		RPC:     ctx.String(AvailRPCUrl),
-		Seed:    ctx.String(Seed),
-		AppId:   ctx.Int(AppID),
-		Timeout: ctx.Duration(Timeout),
+		Addr:       ctx.String(ListenAddrFlagName),
+		Port:       ctx.Int(PortFlagName),
+		RPC:        ctx.String(AvailRPCUrl),
+		Seed:       ctx.String(Seed),
+		AppId:      ctx.Int(AppID),
+		TurboDA:    ctx.Bool(TurboDAEnabled),
+		TurboDAURL: ctx.String(TurboDAURL),
+		TurboDAKey: ctx.String(TurboDAKey),
 	}
 }
 
 func (c CLIConfig) Check() error {
-	if c.RPC == "" {
-		return errors.New("no rpc url provided")
-	}
-	if c.AppId == 0 {
-		return errors.New("no app id provided")
-	}
-	if c.Seed == "" {
-		return errors.New("seedphrase not provided")
+	if c.TurboDA {
+		if c.TurboDAURL == "" {
+			return errors.New("turbo da url not provided")
+		}
+		if c.TurboDAKey == "" {
+			return errors.New("turbo da key not provided")
+		}
+	} else {
+		if c.Seed == "" {
+			return errors.New("seedphrase not provided")
+		}
+		if c.AppId == 0 {
+			return errors.New("no app id provided")
+		}
 	}
 	return nil
 }

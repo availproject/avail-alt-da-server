@@ -1,6 +1,7 @@
-package main
+package server
 
 import (
+	"avail-alt-da-server/avail"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -12,21 +13,15 @@ import (
 	"strconv"
 	"time"
 
-	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
 
-type AvailStore interface {
-	Get(ctx context.Context, key []byte) ([]byte, error)
-	Put(ctx context.Context, value []byte) ([]byte, error)
-}
-
-type AvailDAServer struct {
+type DAServer struct {
 	log            log.Logger
 	endpoint       string
-	store          AvailStore
+	daprovider     avail.DAProvider
 	tls            *rpc.ServerTLSConfig
 	httpServer     *http.Server
 	listener       net.Listener
@@ -35,15 +30,13 @@ type AvailDAServer struct {
 
 var ErrNotFound = errors.New("not found")
 
-const AvailByte = 0x0a
-
-func NewAvailDAServer(host string, port int, store AvailStore, log log.Logger, useGenericComm bool) *AvailDAServer {
+func NewDAServer(host string, port int, daprovider avail.DAProvider, log log.Logger, useGenericComm bool) *DAServer {
 
 	endpoint := net.JoinHostPort(host, strconv.Itoa(port))
-	return &AvailDAServer{
-		log:      log,
-		endpoint: endpoint,
-		store:    store,
+	return &DAServer{
+		log:        log,
+		endpoint:   endpoint,
+		daprovider: daprovider,
 		httpServer: &http.Server{
 			Addr: endpoint,
 		},
@@ -51,7 +44,7 @@ func NewAvailDAServer(host string, port int, store AvailStore, log log.Logger, u
 	}
 }
 
-func (d *AvailDAServer) Start() error {
+func (d *DAServer) Start() error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/get/", d.HandleGet)
@@ -94,7 +87,7 @@ func (d *AvailDAServer) Start() error {
 	}
 }
 
-func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
+func (d *DAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 	d.log.Info("GET", "url", r.URL)
 
 	route := path.Dir(r.URL.Path)
@@ -111,7 +104,7 @@ func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	commExtracted, err := Decode(comm)
+	commExtracted, err := d.daprovider.Decode(comm)
 
 	if err != nil {
 		d.log.Error("Failed to decode payload", "err", err, "key", key)
@@ -121,7 +114,7 @@ func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d.log.Debug(hex.EncodeToString(commExtracted))
-	input, err := d.store.Get(r.Context(), commExtracted)
+	input, err := d.daprovider.DAservice.Get(r.Context(), commExtracted)
 	if err != nil && errors.Is(err, ErrNotFound) {
 		d.log.Error("Commitment not found", "key", key, "error", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -139,7 +132,7 @@ func (d *AvailDAServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d *AvailDAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
+func (d *DAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 	d.log.Info("PUT", "url", r.URL)
 
 	route := path.Dir(r.URL.Path)
@@ -156,16 +149,16 @@ func (d *AvailDAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comm, err := d.store.Put(r.Context(), input)
+	comm, err := d.daprovider.DAservice.Put(r.Context(), input)
 	if err != nil {
 		d.log.Error("Failed to store commitment to the DA server", "err", err, "comm", comm)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	d.log.Info("stored commitment", "key", hexutil.Encode(Encode(comm)), "input_len", len(input))
+	d.log.Info("stored commitment", "key", hexutil.Encode(d.daprovider.Encode(comm)), "input_len", len(input))
 
-	if _, err := w.Write(Encode(comm)); err != nil {
+	if _, err := w.Write(d.daprovider.Encode(comm)); err != nil {
 		d.log.Error("Failed to write commitment request body", "err", err, "comm", comm)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -173,24 +166,13 @@ func (d *AvailDAServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (b *AvailDAServer) Endpoint() string {
+func (b *DAServer) Endpoint() string {
 	return b.listener.Addr().String()
 }
 
-func (b *AvailDAServer) Stop() error {
+func (b *DAServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = b.httpServer.Shutdown(ctx)
 	return nil
-}
-
-func Encode(comm []byte) []byte {
-	return altda.GenericCommitment(append([]byte{byte(AvailByte)}, comm...)).Encode()
-}
-
-func Decode(comm []byte) ([]byte, error) {
-	if comm[0] != 0x01 && comm[1] != AvailByte {
-		return nil, fmt.Errorf("invalid encoding")
-	}
-	return comm[2:], nil
 }

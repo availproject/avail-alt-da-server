@@ -3,12 +3,13 @@ services:
   avail-da-server:
     build: .
     environment:
-      - ADDR=0.0.0.0
-      - PORT=8080
-      - AVAIL_RPC=http://localhost:9933
-      - AVAIL_SEED
-      - AVAIL_APPID=0
+      - OP_PLASMA_AVAIL_DA_SERVER_ADDR=${ADDR:-0.0.0.0}
+      - OP_PLASMA_AVAIL_DA_SERVER_PORT=${PORT:-8080}
+      - OP_PLASMA_AVAIL_DA_SERVER_AVAIL_RPC=${AVAIL_RPC:-http://host.docker.internal:9933}
+      - OP_PLASMA_AVAIL_DA_SERVER_AVAIL_SEED=${AVAIL_SEED}
+      - OP_PLASMA_AVAIL_DA_SERVER_AVAIL_APPID=${AVAIL_APPID:-1}
+      - OP_PLASMA_AVAIL_DA_SERVER_TURBODA=${TURBODA:-false}
+      - OP_PLASMA_AVAIL_DA_SERVER_TURBODA_URL=${TURBODA_URL}
+      - OP_PLASMA_AVAIL_DA_SERVER_TURBODA_KEY=${TURBODA_KEY}
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
-      - "8080:8080"
-      - "433:433"
