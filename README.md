@@ -47,16 +47,14 @@ The server can be configured via command-line flags or environment variables.
 
 | Flag | Description | Default Value |
 |------|-------------|---------------|
-| `--addr` | Address to bind the server to | `0.0.0.0` |
-| `--host` | Host name for the server | `localhost` |
-| `--port` | Port to run the server on | `8080` |
+| `--addr` | Address to bind the server to | `127.0.0.1` |
+| `--port` | Port to run the server on | `3100` |
 | `--avail.rpc` | Avail HTTP RPC URL (REQUIRED) | - |
 | `--avail.seed` | Avail seed phrase for authentication | - |
 | `--avail.appid` | Avail App ID for your application | `0` |
-| `--avail.timeout` | Timeout for Avail operations | `100 * time.Second` |
-| `--avail.turboda` | Enable Turbo DA service | `false` |
-| `--avail.turboda.url` | Turbo DA service URL | - |
-| `--avail.turboda.key` | Turbo DA API key | - |
+| `--turboda` | Enable Turbo DA service | `false` |
+| `--turboda.url` | Turbo DA service URL | - |
+| `--turboda.key` | Turbo DA API key | - |
 
 ### Environment Variables
 
@@ -70,18 +68,18 @@ Edit `.env` with your configuration:
 
 ```bash
 # Server Configuration
-ADDR=0.0.0.0
-PORT=8080
+OP_PLASMA_AVAIL_DA_SERVER_ADDR=127.0.0.1
+OP_PLASMA_AVAIL_DA_SERVER_PORT=3100
 
 # Avail DA Configuration
-AVAIL_RPC=https://turing-rpc.avail.so/rpc
-AVAIL_SEED="your seed phrase here"
-AVAIL_APPID=1
+OP_PLASMA_AVAIL_DA_SERVER_AVAIL_RPC=https://turing-rpc.avail.so/rpc
+OP_PLASMA_AVAIL_DA_SERVER_AVAIL_SEED="your seed phrase here"
+OP_PLASMA_AVAIL_DA_SERVER_AVAIL_APPID=1
 
 # Turbo DA Configuration (Optional)
-TURBODA=false
-TURBODA_URL=https://turing.turbo-api.availproject.org
-TURBODA_KEY=your-api-key-here
+OP_PLASMA_AVAIL_DA_SERVER_TURBODA=false
+OP_PLASMA_AVAIL_DA_SERVER_TURBODA_URL=https://turing.turbo-api.availproject.org
+OP_PLASMA_AVAIL_DA_SERVER_TURBODA_KEY=your-api-key-here
 ```
 
 ## Usage
@@ -118,8 +116,8 @@ For direct integration with Avail blockchain:
 
 ```shell
 ./bin/avail-da-server \
-  --addr=localhost \
-  --port=8000 \
+  --addr=127.0.0.1 \
+  --port=3100 \
   --avail.rpc=<Avail RPC URL> \
   --avail.seed="<seed phrase>" \
   --avail.appid=<APP ID> \
@@ -140,9 +138,9 @@ For high-performance data availability via Turbo DA:
 
 ```shell
 ./bin/avail-da-server \
-  --addr=localhost \
-  --port=8000 \
-  --avail.turboda=true \
+  --addr=127.0.0.1 \
+  --port=3100 \
+  --turboda=true \
   --avail.rpc=<Avail RPC URL> \
   --turboda.url=<Turbo DA URL> \
   --turboda.key=<Turbo DA API Key> \
@@ -156,7 +154,7 @@ For high-performance data availability via Turbo DA:
 
    ```shell
    cp .env.example .env
-   # Fill in test values in .env
+   # Fill in test values in .env - tests require AVAIL_RPC, AVAIL_SEED, and AVAIL_APPID
    ```
 
 2. **Run Tests**:
@@ -168,7 +166,7 @@ For high-performance data availability via Turbo DA:
 3. **Run Specific Tests**:
 
    ```shell
-   go test -v -tags avail ./...
+   go test -v -tags avail ./test/
    ```
 
 ### Building for Different Platforms
@@ -227,7 +225,7 @@ TARGETOS=linux TARGETARCH=arm64 make da-server
 docker build -t avail-alt-da-server .
 
 # Run container
-docker run -p 8080:8080 --env-file .env avail-alt-da-server
+docker run -p 3100:3100 --env-file .env avail-alt-da-server
 ```
 
 ## API Reference
@@ -236,54 +234,19 @@ The server exposes HTTP endpoints for data availability operations.
 
 ### Endpoints
 
-#### POST /submit
+#### POST /put
 
 Submit data to the DA layer.
 
-**Request Body**:
+**Request Body**: Raw binary data
 
-```json
-{
-  "data": "base64-encoded-data",
-  "namespace": "optional-namespace"
-}
-```
+**Response**: Hex-encoded commitment hash
 
-**Response**:
+#### GET /get/{commitment}
 
-```json
-{
-  "commitment": "data-commitment-hash",
-  "namespace": "data-namespace",
-  "height": "block-height"
-}
-```
+Retrieve data by hex-encoded commitment.
 
-#### GET /retrieve/{commitment}
-
-Retrieve data by commitment.
-
-**Response**:
-
-```json
-{
-  "data": "base64-encoded-data",
-  "found": true
-}
-```
-
-#### GET /health
-
-Health check endpoint.
-
-**Response**:
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
+**Response**: Raw binary data if found, 404 if not found
 
 ## Troubleshooting
 
